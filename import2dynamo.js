@@ -20,6 +20,24 @@ function hasJsonExtension(fileName) {
 var inputFiles = fs.readdirSync("in").filter(hasJsonExtension);
 var oidMap = {};
 
+//populate the oid map //TODO: dont read the file twice...
+if(!keepExistingIds) {
+	for(fileIndex in inputFiles) {
+		var fileName = inputFiles[fileIndex];
+		console.log("Reading file " + fileName);
+
+		var lineArray = fs.readFileSync("in/"+fileName).toString().split("\n");
+
+		for(i in lineArray) {
+			var line = lineArray[i];
+			if(line) {
+				var oid = line.match(/"\$oid":"(.{24})"}/)[1];
+				oidMap[oid] = uuid.v4();
+			}
+		}
+	}
+}
+
 for(fileIndex in inputFiles) {
 
 	var fileName = inputFiles[fileIndex];
@@ -44,10 +62,18 @@ for(fileIndex in inputFiles) {
 			}
 			else {
 		        var uid = uuid.v4();
-				var replace = "id\":\""+uid+"\"";
+				var oid = line.match(/"\$oid":"(.{24})"}/)[1];
+				// oidMap[oid] = uid;
 
+				var replace = "id\":\""+oidMap[oid]+"\"";
 				line = line.replace(regex,replace);
 				console.log("Replaced $oid: ", line);
+
+				//replace "foreign" keys
+				for(var key in oidMap) {
+					var re = new RegExp(key,"g");
+					line = line.replace(re, oidMap[key]);
+				}
 			}
 
 			var json = JSON.parse(line);
@@ -76,7 +102,7 @@ for(fileIndex in inputFiles) {
 		        if (err) {
 		            console.log(err);
 		        }else{
-		            console.log(++itemsSaved + " items saved",data);
+		            console.log(++itemsSaved + " items saved");
 		        }
 		    });
 
