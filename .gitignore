@@ -1,4 +1,5 @@
 .DS_Store
+regex.js
 package.json
 export/
 in/
